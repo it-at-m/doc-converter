@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.HashMap;
@@ -26,7 +25,7 @@ import org.thymeleaf.templateresolver.StringTemplateResolver;
 @Slf4j
 public class DDParser {
 	
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([a-zA-Z0-9-]+)\\}");
+    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([a-zA-Z0-9-]+)}");
 
 	public static List<Section> parse(InputStream dd, InputStream doc) throws IOException, DocumentException {
         var docAsString = new String(doc.readAllBytes(), StandardCharsets.UTF_8);
@@ -39,7 +38,7 @@ public class DDParser {
         
         var nodes = document.selectNodes("/document/definition/*");
         
-        Collections.sort(nodes, (a, b) -> {
+        nodes.sort((a, b) -> {
             var aWeightAttribute = a.numberValueOf("@weight");
             var bWeightAttribute = b.numberValueOf("@weight");
 

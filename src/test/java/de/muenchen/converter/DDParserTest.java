@@ -18,8 +18,7 @@ public class DDParserTest {
 
     @Test
 	void test() {
-        var ddStringBuilder = new StringBuilder();
-        ddStringBuilder.append(
+        var ddString =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
                 "<definition>" +
@@ -39,12 +38,10 @@ public class DDParserTest {
                     "<blank-line><![CDATA[(?:${new-line}${new-line})]]></blank-line>" +
                     "<new-line><![CDATA[(?:\r?\n|\r)]]></new-line>" +
                 "</glossary>" +
-            "</document>"
-        );
-        var dd = new ByteArrayInputStream(ddStringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+            "</document>";
+        var dd = new ByteArrayInputStream(ddString.getBytes(StandardCharsets.UTF_8));
 
-        var docStringBuilder = new StringBuilder();
-        docStringBuilder.append(
+        var docString =
             "1. Introduction\n" +
             "\n" +
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do\n" +
@@ -57,12 +54,10 @@ public class DDParserTest {
             "2. Conclusion\n" +
             "\n" +
             "Ut enim ad minim veniam, quis nostrud exercitation ullamco\n" +
-            "laboris nisi ut aliquip ex ea commodo consequat."
-        );
-        var doc = new ByteArrayInputStream(docStringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+            "laboris nisi ut aliquip ex ea commodo consequat.";
+        var doc = new ByteArrayInputStream(docString.getBytes(StandardCharsets.UTF_8));
 
-        var templateStringBuilder = new StringBuilder();
-        templateStringBuilder.append(
+        var templateString =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
                 "<id th:text=\"${id}\"></id>" +
@@ -77,9 +72,8 @@ public class DDParserTest {
                 "</table>" +
                 "<h1 th:text=\"${secondHeading.default}\"></h1>" +
                 "<p th:text=\"${secondParagraph.default}\"></p>" +
-            "</document>"
-        );
-        var template = new ByteArrayInputStream(templateStringBuilder.toString().getBytes(StandardCharsets.UTF_8));
+            "</document>";
+        var template = new ByteArrayInputStream(templateString.getBytes(StandardCharsets.UTF_8));
         
         try {
             var sections = DDParser.parse(dd, doc);
