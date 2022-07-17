@@ -5,15 +5,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.dom4j.DocumentException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Slf4j
 public class DDParserTest {
-
-    // TODO: Lombok
-    private static final Logger logger = LoggerFactory.getLogger(DDParserTest.class);
 
 	// TODO: Tests for unexpected cases.
 
@@ -86,14 +85,14 @@ public class DDParserTest {
             var sections = DDParser.parse(dd, doc);
 
             for (var section : sections) {
-                logger.info(section.name + ": " + section.content);
+                log.info(section.getName() + ": " + section.getContent());
             }
 
             var result = DDParser.convert(template, sections, Map.of("id", "0000"));
-            logger.info(result);
+            log.info(result);
         } catch (IOException | DocumentException exception) {
             // TODO: Fail test
-            logger.error("Failed to parse document");
+            log.error("Failed to parse document");
         }
 	}
 

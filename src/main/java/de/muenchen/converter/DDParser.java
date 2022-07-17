@@ -1,7 +1,6 @@
 package de.muenchen.converter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,14 +21,12 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
 
-// TODO: Lombok
 // TODO: Magic strings
 
+@Slf4j
 public class DDParser {
 	
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([a-zA-Z0-9-]+)\\}");
-
-	private static final Logger logger = LoggerFactory.getLogger(DDParser.class);
 
 	public static List<Section> parse(InputStream dd, InputStream doc) throws IOException, DocumentException {
         var docAsString = new String(doc.readAllBytes(), StandardCharsets.UTF_8);
@@ -59,10 +56,11 @@ public class DDParser {
             var matcher = pattern.matcher(docAsString);
 
             if (matcher.find()) {
-                var section = new Section();
                 var nameAttribute = node.valueOf("@name");
-                section.name = nameAttribute.isBlank() ? node.getName() : nameAttribute;
-                section.content = new HashMap<String, String>();
+                var section = new Section(
+                        nameAttribute.isBlank() ? node.getName() : nameAttribute,
+                        new HashMap<>()
+                );
 
                 // TODO: Fail if a group does not exist or is empty
                 var captureGroups = node.valueOf("@get");
@@ -71,10 +69,10 @@ public class DDParser {
                         // TODO: /, ?/
                         var captureGroupsArray = captureGroups.split(",");
                         for (var captureGroup : captureGroupsArray) {
-                            section.content.put(captureGroup, matcher.group(captureGroup));
+                            section.getContent().put(captureGroup, matcher.group(captureGroup));
                         }
                     } else {
-                        section.content.put("default", matcher.group(1));
+                        section.getContent().put("default", matcher.group(1));
                     }
                 }
 
@@ -103,7 +101,7 @@ public class DDParser {
         var context = new Context(Locale.getDefault());
         
         for (var section : sections) {
-            context.setVariable(section.name, section.content);
+            context.setVariable(section.getName(), section.getContent());
         }
 
         for (var ext : extra.entrySet()) {

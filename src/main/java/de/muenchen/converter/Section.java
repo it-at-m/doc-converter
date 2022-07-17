@@ -1,13 +1,14 @@
 package de.muenchen.converter;
 
+import lombok.Data;
+
 import java.util.Map;
 
-// TODO: Lombok
-
+@Data
 public class Section {
 
-	public String name;
+	private final String name;
 
-	public Map<String, String> content;
+	private final Map<String, String> content;
 
 }
