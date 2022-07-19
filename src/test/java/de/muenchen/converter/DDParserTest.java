@@ -8,40 +8,35 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.dom4j.DocumentException;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 @Slf4j
 public class DDParserTest {
 
-	// TODO: Tests for unexpected cases.
-
-    @Test
-	void test() {
-        var ddString =
+    final String DD_STRING =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
                 "<definition>" +
                     "<heading name=\"firstHeading\" get=\"default\"></heading>" +
-                    "<paragraph name=\"firstParagraph\" weight=\"-2\" get=\"default\"></paragraph>" +
+                    "<paragraph name=\"firstParagraph\" weight=\"-1\" get=\"default\"></paragraph>" +
                     "<table></table>" +
-                    "<table-row name=\"tableData\" get=\"value1,value2,value3\"></table-row>" +
+                    "<table-row name=\"tableRows\" get=\"value1,value2,value3\" repeats=\"true\"></table-row>" +
                     "<table></table>" +
-                    "<heading name=\"secondHeading\" get=\"default\"></heading>" +
-                    "<paragraph name=\"secondParagraph\" weight=\"-1\" get=\"default\"></paragraph>" +
                 "</definition>" +
                 "<glossary>" +
                     "<heading><![CDATA[(\\d\\. .+)${blank-line}]]></heading>" +
-                    "<paragraph><![CDATA[((?:.|\n|\r)+)(?:${blank-line}|\\Z)]]></paragraph>" +
+                    "<paragraph><![CDATA[((?:.|\n|\r)+)${blank-line}]]></paragraph>" +
                     "<table><![CDATA[\\+-+\\+${new-line}]]></table>" +
-                    "<table-row><![CDATA[\\|(?<value1>[0-9.,]+)\\|(?<value2>[0-9.,]+)\\|(?<value3>[0-9.,]+)\\|${new-line}]]></table-row>" +
+                    "<table-row><![CDATA[\\|(?<value1>[0-9])\\|(?<value2>[0-9])\\|(?<value3>[0-9])\\|${new-line}]]></table-row>" +
                     "<blank-line><![CDATA[(?:${new-line}${new-line})]]></blank-line>" +
                     "<new-line><![CDATA[(?:\r?\n|\r)]]></new-line>" +
                 "</glossary>" +
             "</document>";
-        var dd = new ByteArrayInputStream(ddString.getBytes(StandardCharsets.UTF_8));
 
-        var docString =
+    final String DOCUMENT_STRING =
             "1. Introduction\n" +
             "\n" +
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do\n" +
@@ -49,44 +44,73 @@ public class DDParserTest {
             "\n" +
             "+-----+\n" +
             "|1|2|3|\n" +
-            "+-----+\n" +
-            "\n" +
-            "2. Conclusion\n" +
-            "\n" +
-            "Ut enim ad minim veniam, quis nostrud exercitation ullamco\n" +
-            "laboris nisi ut aliquip ex ea commodo consequat.";
-        var doc = new ByteArrayInputStream(docString.getBytes(StandardCharsets.UTF_8));
+            "|4|5|6|\n" +
+            "|7|8|9|\n" +
+            "+-----+\n";
 
-        var templateString =
+    final String TEMPLATE_STRING =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
-                "<id th:text=\"${id}\"></id>" +
-                "<heading th:text=\"${firstHeading.default}\"></heading>" +
+                "<h1 th:text=\"${greeting} + ', ' + ${reader} + '!'\"></h1>" +
+                "<h3 th:text=\"${firstHeading.default}\"></h3>" +
                 "<p th:text=\"${firstParagraph.default}\"></p>" +
                 "<table>" +
-                    "<tr>" +
-                        "<td th:text=\"${tableData.value1}\"></td>" +
-                        "<td th:text=\"${tableData.value2}\"></td>" +
-                        "<td th:text=\"${tableData.value3}\"></td>" +
+                    "<tr th:each=\"row: ${tableRows}\">" +
+                        "<td th:text=\"${row.value1}\"></td>" +
+                        "<td th:text=\"${row.value2}\"></td>" +
+                        "<td th:text=\"${row.value3}\"></td>" +
                     "</tr>" +
                 "</table>" +
-                "<h1 th:text=\"${secondHeading.default}\"></h1>" +
-                "<p th:text=\"${secondParagraph.default}\"></p>" +
             "</document>";
-        var template = new ByteArrayInputStream(templateString.getBytes(StandardCharsets.UTF_8));
-        
-        try {
-            var sections = DDParser.parse(dd, doc);
 
-            for (var section : sections) {
-                log.info(section.getName() + ": " + section.getContent());
+    final Map<String, String> EXTRA_VALUES = Map.of("greeting", "Hello", "reader", "world");
+
+    final String EXPECTED_OUTPUT =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<document>" +
+                "<h1>Hello, world!</h1>" +
+                "<h3>1. Introduction</h3>" +
+                "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do\n" +
+                    "eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>" +
+                "<table>" +
+                    "<tr>" +
+                        "<td>1</td>" +
+                        "<td>2</td>" +
+                        "<td>3</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>4</td>" +
+                        "<td>5</td>" +
+                        "<td>6</td>" +
+                    "</tr>" +
+                    "<tr>" +
+                        "<td>7</td>" +
+                        "<td>8</td>" +
+                        "<td>9</td>" +
+                    "</tr>" +
+                "</table>" +
+            "</document>";
+
+    // TODO: Tests for unexpected cases.
+
+    @Test
+	void test() {
+        final var dd = new ByteArrayInputStream(DD_STRING.getBytes(StandardCharsets.UTF_8));
+        final var doc = new ByteArrayInputStream(DOCUMENT_STRING.getBytes(StandardCharsets.UTF_8));
+        final var template = new ByteArrayInputStream(TEMPLATE_STRING.getBytes(StandardCharsets.UTF_8));
+
+        try {
+            final var sections = DDParser.parse(dd, doc);
+
+            for (final var section : sections) {
+                log.info("Parsed section '" + section.getName() + "': " + section.getContent());
             }
 
-            var result = DDParser.convert(template, sections, Map.of("id", "0000"));
-            log.info(result);
+            final var output = DDParser.convert(template, sections, EXTRA_VALUES);
+            assertThat(output, equalTo(EXPECTED_OUTPUT));
+            log.info("Produced output matches expected output");
         } catch (IOException | DocumentException exception) {
-            // TODO: Fail test
-            log.error("Failed to parse document");
+            fail("Failed to parse or convert document: " + exception.getMessage());
         }
 	}
 
