@@ -35,7 +35,6 @@ public class DDParser {
 
         var glossary = document.selectSingleNode("/document/glossary");
 
-        
         var nodes = document.selectNodes("/document/definition/*");
         
         nodes.sort((a, b) -> {
@@ -54,7 +53,7 @@ public class DDParser {
             var pattern = Pattern.compile(glossaryEntry);
             var matcher = pattern.matcher(docAsString);
 
-            if (matcher.find()) {
+            while (matcher.find()) {
                 var nameAttribute = node.valueOf("@name");
                 var section = new Section(
                         nameAttribute.isBlank() ? node.getName() : nameAttribute,
@@ -76,10 +75,16 @@ public class DDParser {
                 }
 
                 var beforeMatch = docAsString.substring(0, matcher.start());
-                var afterMatch = docAsString.substring(matcher.end(), docAsString.length());
+                var afterMatch = docAsString.substring(matcher.end());
                 docAsString = beforeMatch + afterMatch;
 
                 sections.add(section);
+
+                if (!Boolean.parseBoolean(node.valueOf("@repeats"))) {
+                    break;
+                }
+
+                matcher = pattern.matcher(docAsString);
             }
         }
 
@@ -100,7 +105,20 @@ public class DDParser {
         var context = new Context(Locale.getDefault());
         
         for (var section : sections) {
-            context.setVariable(section.getName(), section.getContent());
+            var currentValue = context.getVariable(section.getName());
+
+            if (currentValue == null) {
+                context.setVariable(section.getName(), section.getContent());
+            } else {
+                if (currentValue instanceof List) {
+                    ((ArrayList<Map<String, String>>) currentValue).add(section.getContent());
+                } else {
+                    var list = new ArrayList<>();
+                    list.add(currentValue);
+                    list.add(section.getContent());
+                    context.setVariable(section.getName(), list);
+                }
+            }
         }
 
         for (var ext : extra.entrySet()) {
