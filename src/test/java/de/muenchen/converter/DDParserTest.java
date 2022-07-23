@@ -16,20 +16,25 @@ import static org.hamcrest.Matchers.equalTo;
 @Slf4j
 public class DDParserTest {
 
+    // TODO: "<paragraph ...></paragraph>" -> "<paragraph ... />"
+
     final String DD_STRING =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
                 "<definition>" +
-                    "<heading name=\"firstHeading\" get=\"default\"></heading>" +
-                    "<paragraph name=\"firstParagraph\" weight=\"-1\" get=\"default\"></paragraph>" +
-                    "<table></table>" +
-                    "<table-row name=\"tableRows\" get=\"value1,value2,value3\" repeats=\"true\"></table-row>" +
-                    "<table></table>" +
+                    "<heading name=\"firstHeading\" gets=\"default\">" +
+                        "<paragraph name=\"firstParagraph\" gets=\"default\"></paragraph>" +
+                    "</heading>" +
+                    "<table-top>" +
+                        "<table-row name=\"tableRows\" gets=\"value1,value2,value3\" repeats=\"true\"></table-row>" +
+                        "<table-bottom></table-bottom>" +
+                    "</table-top>" +
                 "</definition>" +
                 "<glossary>" +
                     "<heading><![CDATA[(\\d\\. .+)${blank-line}]]></heading>" +
                     "<paragraph><![CDATA[((?:.|\n|\r)+)${blank-line}]]></paragraph>" +
-                    "<table><![CDATA[\\+-+\\+${new-line}]]></table>" +
+                    "<table-top><![CDATA[\\+-+\\+${new-line}]]></table-top>" +
+                    "<table-bottom><![CDATA[\\+-+\\+]]></table-bottom>" +
                     "<table-row><![CDATA[\\|(?<value1>[0-9])\\|(?<value2>[0-9])\\|(?<value3>[0-9])\\|${new-line}]]></table-row>" +
                     "<blank-line><![CDATA[(?:${new-line}${new-line})]]></blank-line>" +
                     "<new-line><![CDATA[(?:\r?\n|\r)]]></new-line>" +
@@ -46,7 +51,7 @@ public class DDParserTest {
             "|1|2|3|\n" +
             "|4|5|6|\n" +
             "|7|8|9|\n" +
-            "+-----+\n";
+            "+-----+";
 
     final String TEMPLATE_STRING =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +

@@ -5,14 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 import org.dom4j.DocumentException;
+import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.thymeleaf.TemplateEngine;
@@ -20,11 +18,15 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
 
-// TODO: Magic strings
+// TODO: No magic strings
+// TODO: Better naming
+// TODO: Use Element instead of Node
 
 @Slf4j
 public class DDParser {
 	
+    private static final String DEFINITION_XPATH = "/document/definition";
+    private static final String GLOSSARY_XPATH = "/document/glossary";
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([a-zA-Z0-9-]+)}");
 
 	public static List<Section> parse(InputStream dd, InputStream doc) throws IOException, DocumentException {
@@ -33,58 +35,72 @@ public class DDParser {
         var reader = new SAXReader();
         var document = reader.read(dd);
 
-        var glossary = document.selectSingleNode("/document/glossary");
+        var glossary = document.selectSingleNode(GLOSSARY_XPATH);
+        var definition = document.selectSingleNode(DEFINITION_XPATH);
+        if (definition instanceof Element) {
+            ((Element) definition).addAttribute("cache", docAsString);
+        }
 
-        var nodes = document.selectNodes("/document/definition/*");
-        
-        nodes.sort((a, b) -> {
-            var aWeightAttribute = a.numberValueOf("@weight");
-            var bWeightAttribute = b.numberValueOf("@weight");
+        var queue = new ConcurrentLinkedQueue<List<Node>>();
+        queue.offer(definition.selectNodes("*"));
 
-            var aWeight = aWeightAttribute == null ? 0 : aWeightAttribute;
-            var bWeight = bWeightAttribute == null ? 0 : bWeightAttribute;
+        while (!queue.isEmpty()) {
+            var nodeList = queue.poll();
+            Node previousSibling = null;
 
-            return -Integer.compare(aWeight.intValue(), bWeight.intValue());
-        });
+            for (var node : nodeList) {
+                var glossaryEntry = getGlossaryEntry(node.getName(), glossary);
 
-        // TODO: Once sections can be nested: confirm that content is not text
-        for (var node : nodes) {
-            var glossaryEntry = getGlossaryEntry(node.getName(), glossary);
-            var pattern = Pattern.compile(glossaryEntry);
-            var matcher = pattern.matcher(docAsString);
+                String text;
+                if (previousSibling != null) {
+                    text = previousSibling.valueOf("@cache");
+                } else {
+                    text = node.getParent().valueOf("@cache");
+                }
 
-            while (matcher.find()) {
-                var nameAttribute = node.valueOf("@name");
-                var section = new Section(
-                        nameAttribute.isBlank() ? node.getName() : nameAttribute,
-                        new HashMap<>()
-                );
+                var pattern = Pattern.compile(glossaryEntry);
+                var matcher = pattern.matcher(text);
 
-                // TODO: Fail if a group does not exist or is empty
-                var captureGroups = node.valueOf("@get");
-                if (!captureGroups.isBlank()) {
-                    if (!captureGroups.equals("default")) {
-                        // TODO: /, ?/
-                        var captureGroupsArray = captureGroups.split(",");
-                        for (var captureGroup : captureGroupsArray) {
-                            section.getContent().put(captureGroup, matcher.group(captureGroup));
+                while (matcher.find()) {
+                    var nameAttribute = node.valueOf("@name");
+                    var section = new Section(
+                            nameAttribute.isBlank() ? node.getName() : nameAttribute,
+                            new HashMap<>()
+                    );
+
+                    // TODO: Fail if a group does not exist or is empty
+                    var captureGroups = node.valueOf("@gets");
+                    if (!captureGroups.isBlank()) {
+                        if (!captureGroups.equals("default")) {
+                            // TODO: /, ?/
+                            var captureGroupsArray = captureGroups.split(",");
+                            for (var captureGroup : captureGroupsArray) {
+                                section.getContent().put(captureGroup, matcher.group(captureGroup));
+                            }
+                        } else {
+                            section.getContent().put("default", matcher.group(1));
                         }
-                    } else {
-                        section.getContent().put("default", matcher.group(1));
+                    }
+
+                    var beforeMatch = text.substring(0, matcher.start());
+                    if (previousSibling instanceof Element) {
+                        ((Element) previousSibling).addAttribute("cache", beforeMatch);
+                    }
+
+                    var afterMatch = text.substring(matcher.end());
+                    if (node instanceof Element) {
+                        ((Element) node).addAttribute("cache", afterMatch);
+                    }
+
+                    sections.add(section);
+
+                    if (!Boolean.parseBoolean(node.valueOf("@repeats"))) {
+                        break;
                     }
                 }
 
-                var beforeMatch = docAsString.substring(0, matcher.start());
-                var afterMatch = docAsString.substring(matcher.end());
-                docAsString = beforeMatch + afterMatch;
-
-                sections.add(section);
-
-                if (!Boolean.parseBoolean(node.valueOf("@repeats"))) {
-                    break;
-                }
-
-                matcher = pattern.matcher(docAsString);
+                previousSibling = node;
+                queue.offer(node.selectNodes("*"));
             }
         }
 
