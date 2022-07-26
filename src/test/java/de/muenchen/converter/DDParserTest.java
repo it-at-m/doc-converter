@@ -16,18 +16,16 @@ import static org.hamcrest.Matchers.equalTo;
 @Slf4j
 public class DDParserTest {
 
-    // TODO: "<paragraph ...></paragraph>" -> "<paragraph ... />"
-
     final String DD_STRING =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<document>" +
                 "<definition>" +
                     "<heading name=\"firstHeading\" gets=\"default\">" +
-                        "<paragraph name=\"firstParagraph\" gets=\"default\"></paragraph>" +
+                        "<paragraph name=\"firstParagraph\" gets=\"default\"/>" +
                     "</heading>" +
                     "<table-top>" +
-                        "<table-row name=\"tableRows\" gets=\"value1,value2,value3\" repeats=\"true\"></table-row>" +
-                        "<table-bottom></table-bottom>" +
+                        "<table-row name=\"tableRows\" gets=\"value1,value2,value3\" repeats=\"true\"/>" +
+                        "<table-bottom/>" +
                     "</table-top>" +
                 "</definition>" +
                 "<glossary>" +

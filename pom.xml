@@ -6,7 +6,34 @@
     
     <groupId>de.muenchen</groupId>
     <artifactId>doc-converter</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>doc-converter</name>
+    <description>[INSERT DESCRIPTION]</description>
+    <url>https://github.com/it-at-m/doc-converter</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/mit-license.php</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>banzuu</name>
+            <email>103417158+banzuu@users.noreply.github.com</email>
+            <organization>it@M</organization>
+            <organizationUrl>https://github.com/it-at-m</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/it-at-m/doc-converter.git</connection>
+        <developerConnection>scm:git:https://github.com/it-at-m/doc-converter.git</developerConnection>
+        <url>https://github.com/it-at-m/doc-converter/tree/dev</url>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -71,6 +98,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.4.0</version>
             </plugin>
         </plugins>
     </build>
